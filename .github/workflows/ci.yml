@@ -30,6 +30,10 @@ jobs:
       # For this demo, we'll build the app to ensure it compiles.
       # A full E2E test in CI requires a running backend + database (docker-compose).
       - name: Build Frontend (React)
+        env:
+          VITE_API_URL: "http://localhost:5000/api"
+          VITE_SUPABASE_URL: "https://mock.supabase.co"
+          VITE_SUPABASE_ANON_KEY: "mock-anon-key"
         run: |
           cd frontend
           npm run build
