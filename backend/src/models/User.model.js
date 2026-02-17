@@ -11,7 +11,7 @@ class UserModel {
      */
     static async findById(id) {
         try {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseAdmin
                 .from('users')
                 .select('*')
                 .eq('id', id)
@@ -32,7 +32,7 @@ class UserModel {
      */
     static async findByEmail(email) {
         try {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseAdmin
                 .from('users')
                 .select('*')
                 .eq('email', email)
@@ -56,6 +56,7 @@ class UserModel {
             const { data, error } = await supabaseAdmin
                 .from('users')
                 .insert([{
+                    id: userData.id, // Explicitly set ID to match Supabase Auth UUID
                     email: userData.email,
                     full_name: userData.full_name,
                     avatar_url: userData.avatar_url,
@@ -72,7 +73,7 @@ class UserModel {
             return data;
         } catch (error) {
             console.error('Error creating user:', error.message);
-            return null;
+            throw error;
         }
     }
 

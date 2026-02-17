@@ -3,7 +3,8 @@ import AuthController from '../controllers/auth.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import {
     validateOAuthCallback,
-    validateRefreshToken
+    validateRefreshToken,
+    validateAuth
 } from '../middlewares/validation.middleware.js';
 
 const router = express.Router();
@@ -21,6 +22,20 @@ router.get('/google', AuthController.signUpWithGoogle);
  * @access  Public
  */
 router.get('/google/signin', AuthController.signInWithGoogle);
+
+/**
+ * @route   POST /api/auth/signup
+ * @desc    Sign up with email and password
+ * @access  Public
+ */
+router.post('/signup', validateAuth, AuthController.signUp);
+
+/**
+ * @route   POST /api/auth/signin
+ * @desc    Sign in with email and password
+ * @access  Public
+ */
+router.post('/signin', validateAuth, AuthController.signIn);
 
 /**
  * @route   POST /api/auth/callback

@@ -57,6 +57,158 @@ class AuthController {
     }
 
     /**
+     * Sign up with Email/Password
+     */
+    static async signUp(req, res) {
+        try {
+            const { email, password, full_name } = req.body;
+
+            // 1. Sign up with Supabase Auth
+            const { data: { user: supabaseUser, session }, error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: { full_name }
+                }
+            });
+
+            if (error) {
+                return res.status(400).json({
+                    success: false,
+                    message: error.message
+                });
+            }
+
+            if (!supabaseUser) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Sign up failed'
+                });
+            }
+
+            // 2. Create user in our database
+            // Note: If email confirmation is enabled, session might be null.
+            // We should still create the user record so they exist.
+            let user = await UserModel.findByEmail(email);
+
+            if (!user) {
+                user = await UserModel.create({
+                    id: supabaseUser.id,
+                    email: supabaseUser.email,
+                    full_name: full_name || 'User',
+                    avatar_url: null,
+                    provider: 'email',
+                    provider_id: supabaseUser.id,
+                    role: 'user'
+                });
+            }
+
+            // 3. Response
+            if (session) {
+                // If we got a session (email confirm disabled or auto-confirmed), return tokens
+                const tokens = generateTokenPair(user);
+                return res.status(201).json({
+                    success: true,
+                    message: 'Sign up successful',
+                    data: {
+                        user: {
+                            id: user.id,
+                            email: user.email,
+                            full_name: user.full_name,
+                            role: user.role
+                        },
+                        tokens
+                    }
+                });
+            } else {
+                // Email confirmation required
+                return res.status(200).json({
+                    success: true,
+                    message: 'Sign up successful! Please check your email to confirm your account.',
+                    data: {
+                        user: {
+                            id: user.id,
+                            email: user.email,
+                            full_name: user.full_name,
+                            role: user.role
+                        }
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Sign up error:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Sign in with Email/Password
+     */
+    static async signIn(req, res) {
+        try {
+            const { email, password } = req.body;
+
+            // 1. Sign in with Supabase Auth
+            const { data: { user: supabaseUser, session }, error } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            });
+
+            if (error) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid email or password'
+                });
+            }
+
+            // 2. Get user from our database
+            let user = await UserModel.findById(supabaseUser.id);
+
+            // If user exists in Auth but not DB (rare edge case), create them
+            if (!user) {
+                user = await UserModel.create({
+                    id: supabaseUser.id,
+                    email: supabaseUser.email,
+                    full_name: supabaseUser.user_metadata?.full_name || 'User',
+                    avatar_url: null,
+                    provider: 'email',
+                    provider_id: supabaseUser.id,
+                    role: 'user'
+                });
+            }
+
+            // 3. Generate tokens
+            const tokens = generateTokenPair(user);
+
+            return res.status(200).json({
+                success: true,
+                message: 'Sign in successful',
+                data: {
+                    user: {
+                        id: user.id,
+                        email: user.email,
+                        full_name: user.full_name,
+                        role: user.role,
+                        avatar_url: user.avatar_url
+                    },
+                    tokens
+                }
+            });
+        } catch (error) {
+            console.error('Sign in error:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                error: error.message
+            });
+        }
+    }
+
+    /**
      * Handle OAuth callback
      * Process the OAuth response and create/update user
      */
@@ -87,6 +239,7 @@ class AuthController {
             // If user doesn't exist, create new user
             if (!user) {
                 user = await UserModel.create({
+                    id: supabaseUser.id, // Explicitly set ID to match Supabase Auth UUID
                     email: supabaseUser.email,
                     full_name: supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || 'User',
                     avatar_url: supabaseUser.user_metadata?.avatar_url || supabaseUser.user_metadata?.picture,
