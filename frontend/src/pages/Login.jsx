@@ -8,7 +8,7 @@ import useAuthStore from '../store/authStore';
 
 const Login = () => {
     const navigate = useNavigate();
-    const setAuth = useAuthStore((state) => state.setAuth);
+    const setUser = useAuthStore((state) => state.setUser);
     const [loading, setLoading] = useState(false);
     const [isSignUp, setIsSignUp] = useState(false);
     const [formData, setFormData] = useState({
@@ -47,7 +47,7 @@ const Login = () => {
                 // If not, we should show a message. For now, we assume success or tokens.
                 const user = authService.getUser();
                 if (user) {
-                    setAuth(user);
+                    setUser(user);
                     navigate('/dashboard');
                     toast.success('Account created successfully!');
                 } else {
@@ -56,7 +56,7 @@ const Login = () => {
                 }
             } else {
                 const user = await authService.signIn(formData.email, formData.password);
-                setAuth(user);
+                setUser(user);
                 navigate('/dashboard');
                 toast.success('Welcome back!');
             }

@@ -161,7 +161,7 @@ class AuthController {
             if (error) {
                 return res.status(401).json({
                     success: false,
-                    message: 'Invalid email or password'
+                    message: error.message // Return exact error (e.g., "Email not confirmed")
                 });
             }
 
