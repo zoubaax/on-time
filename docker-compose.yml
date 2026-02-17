@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  # 🚀 Backend API (Express.js)
+  backend:
+    build: ./backend
+    container_name: auth-backend
+    ports:
+      - "5000:5000"
+    environment:
+      # Inject env vars from .env file
+      - NODE_ENV=production
+      - PORT=5000
+    env_file:
+      - ./backend/.env
+    restart: unless-stopped
+
+  # 🌐 Frontend UI (React + Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Pass build arguments from .env
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+    container_name: auth-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    env_file:
+      - .env
